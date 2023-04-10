@@ -1,8 +1,11 @@
 const express = require('express')
+const jwt = require('jsonwebtoken')
 const app = express()
 const port = 3000
 
-app.get('/', (req, res) => {
+app.get('/hello', verifyToken , (req, res) => {
+  console.log(req.user)
+
   res.send('Hello World!')
 })
 
@@ -68,7 +71,7 @@ app.post('/register', (req, res) => {
     
 
 // create a POST route for user to login
-app.post('/login', (req, res) => {
+app.post('/login1', (req, res) => {
     //get the username and password from the request bodu
     const user = dbUsers.find(user => user.username === username && user.password === password);
     
@@ -79,7 +82,18 @@ app.post('/login', (req, res) => {
       // is user is not found, return an error message
       res.send({ error: "User not found" });
     }
-})
+    
+});
+
+app.post('/login', (req, res) => {
+  let data = req.body
+  let user = login(data.username, data.password);
+  res.send(
+    generateToken(user)
+  );
+});
+
+
 
 function login(username, password){
   console.log("someone try to login with", username, password)
@@ -109,4 +123,29 @@ function register(newusername, newpassword, newname, newemail){
       email: newemail
   })
 return "Register Succesfull"
+}
+
+//to generate JWT token
+function generateToken(userProfile) {
+  return jwt.sign(
+    userProfile,
+   'secret',
+    {expiresIn :60 * 60});
+}
+
+//to verify JWT Token
+function verifyToken(req, res, next) {
+  let header = req.headers.authorization
+  console.log(header)
+
+  let token = header.split(' ')[1]
+
+  jwt.verify(token, 'secret', function(err, decoded) {
+    if(err) {
+      res.send("Invalid Token")
+    }
+
+    req.user = decoded
+    next()
+  });
 }
